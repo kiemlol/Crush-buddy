@@ -282,10 +282,10 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-mint-50 font-sans text-slate-700 selection:bg-pink-soft pb-20">
-      {/* Background Decor */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
-        <div className="absolute top-[-5%] right-[-5%] w-[50%] h-[50%] rounded-full bg-pink-soft/60 blur-[100px]" />
-        <div className="absolute bottom-[-5%] left-[-5%] w-[50%] h-[50%] rounded-full bg-mint-100/60 blur-[100px]" />
+      {/* Background Decor - Optimized for Safari */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10 safari-blur-fix">
+        <div className="absolute top-[-5%] right-[-5%] w-[50%] h-[50%] rounded-full bg-pink-soft/60 blur-[100px] transform-gpu" />
+        <div className="absolute bottom-[-5%] left-[-5%] w-[50%] h-[50%] rounded-full bg-mint-100/60 blur-[100px] transform-gpu" />
       </div>
 
       <div className="max-w-2xl mx-auto px-4 pt-12">
@@ -316,7 +316,7 @@ export default function App() {
         </header>
 
         {/* Tab Navigation */}
-        <div className="flex bg-white/60 backdrop-blur-sm p-1.5 rounded-4xl shadow-sm border border-white/50 mb-10 overflow-x-auto no-scrollbar">
+        <div className="flex bg-white/60 backdrop-blur-sm p-1.5 rounded-4xl shadow-sm border border-white/50 mb-10 overflow-x-auto no-scrollbar transform-gpu">
           {[
             { id: 'reply', label: 'Rep tin nhắn', icon: MessageSquare },
             { id: 'date', label: 'Lịch hẹn', icon: Calendar },
