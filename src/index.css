@@ -1,0 +1,36 @@
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Quicksand", ui-sans-serif, system-ui, sans-serif;
+  
+  --color-mint-50: #f0fff4;
+  --color-mint-100: #e6fffa;
+  --color-mint-200: #b2f5ea;
+  --color-mint-500: #38b2ac;
+  
+  --color-pink-soft: #fff5f7;
+  --color-pink-pastel: #fed7e2;
+  
+  --radius-4xl: 32px;
+}
+
+@layer base {
+  body {
+    @apply bg-mint-50 text-slate-700 antialiased;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-md border border-white/50;
+  }
+}
