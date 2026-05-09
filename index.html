@@ -50,12 +50,12 @@
       window.addEventListener('load', () => {
         const splash = document.getElementById('splash-screen');
         if (splash) {
-          // Tăng thời gian hiển thị lên 2.5s để cảm nhận được splash screen
+          // Tăng thời gian hiển thị lên 4s để người dùng có thể thấy rõ animation
           setTimeout(() => {
             splash.style.opacity = '0';
-            splash.style.transition = 'opacity 0.8s ease-in-out';
-            setTimeout(() => splash.remove(), 800);
-          }, 2500); 
+            splash.style.transition = 'opacity 1.2s ease-in-out';
+            setTimeout(() => splash.remove(), 1200);
+          }, 4000); 
         }
       });
     </script>
