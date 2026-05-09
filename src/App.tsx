@@ -37,7 +37,9 @@ import {
   Gamepad2,
   Plane,
   Beer,
-  Moon
+  Moon,
+  HelpCircle,
+  X
 } from 'lucide-react';
 import { 
   getReplySuggestions, 
@@ -85,6 +87,7 @@ export default function App() {
   const [adviceContext, setAdviceContext] = useState('');
   const [selectedVibe, setSelectedVibe] = useState<Vibe>('funny');
   const [loading, setLoading] = useState(false);
+  const [showGuide, setShowGuide] = useState(true);
   
   const [suggestions, setSuggestions] = useState<ReplySuggestion[]>([]);
   const [dateSuggestions, setDateSuggestions] = useState<DateSuggestion[]>([]);
@@ -287,6 +290,113 @@ export default function App() {
         <div className="absolute top-[-5%] right-[-5%] w-[50%] h-[50%] rounded-full bg-pink-soft/60 blur-[100px] transform-gpu" />
         <div className="absolute bottom-[-5%] left-[-5%] w-[50%] h-[50%] rounded-full bg-mint-100/60 blur-[100px] transform-gpu" />
       </div>
+
+      {/* Floating Guide Button */}
+      <button 
+        onClick={() => setShowGuide(true)}
+        className="fixed right-0 top-1/2 -translate-y-1/2 z-40 bg-white/80 backdrop-blur-md p-3 rounded-l-2xl shadow-xl border border-r-0 border-white/50 hover:bg-white hover:pl-5 transition-all group"
+      >
+        <HelpCircle className="w-6 h-6 text-slate-800 group-hover:text-mint-500 group-hover:scale-110 transition-all" />
+      </button>
+
+      {/* Guide Overlay */}
+      <AnimatePresence>
+        {showGuide && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowGuide(false)}
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50"
+            />
+            <motion.div 
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-white z-50 shadow-2xl p-8 overflow-y-auto"
+            >
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-50 flex items-center justify-center">
+                    <Sparkles className="w-5 h-5 text-amber-500" />
+                  </div>
+                  <h2 className="text-xl font-bold text-slate-800">Cẩm nang</h2>
+                </div>
+                <button 
+                  onClick={() => setShowGuide(false)}
+                  className="p-2 hover:bg-slate-50 rounded-xl transition-all"
+                >
+                  <X className="w-6 h-6 text-slate-400" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {[
+                  {
+                    title: 'Rep tin nhắn',
+                    desc: 'AI gợi ý cách trả lời tin nhắn theo nhiều sắc thái (Hài hước, Tinh tế, Bí ẩn, Thả thính). Giúp bạn thoát khỏi những tình huống "bí từ".',
+                    icon: MessageSquare,
+                    color: 'text-mint-500 bg-mint-50'
+                  },
+                  {
+                    title: 'Lịch hẹn',
+                    desc: 'Gợi ý các địa điểm và kịch bản hẹn hò thú vị dựa trên sở thích của đối phương. Tạo nên những buổi hẹn hò khó quên.',
+                    icon: Calendar,
+                    color: 'text-rose-400 bg-rose-50'
+                  },
+                  {
+                    title: 'Bí kíp (Gỡ rối)',
+                    desc: 'Tư vấn tâm lý và chiến lược tình cảm dài hạn. Cung cấp lộ trình cụ thể cho từng giai đoạn của mối quan hệ.',
+                    icon: Lightbulb,
+                    color: 'text-purple-400 bg-purple-50'
+                  },
+                  {
+                    title: 'Soi Profile (Mắt thần)',
+                    desc: 'Phân tích tính cách qua ảnh profile hoặc gợi ý bình luận ảnh để tạo ấn tượng mạnh ngay từ cái nhìn đầu tiên.',
+                    icon: UserSearch,
+                    color: 'text-sky-400 bg-sky-50'
+                  },
+                  {
+                    title: 'Nhật ký trinh phục',
+                    desc: 'Lưu giữ những khoảnh khắc đáng nhớ và dùng AI "giải mã" tiến độ mối quan hệ của bạn qua từng ngày.',
+                    icon: BookOpen,
+                    color: 'text-pink-400 bg-pink-50'
+                  }
+                ].map((item, idx) => (
+                  <motion.div 
+                    key={idx}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className="p-4 bg-slate-50 rounded-3xl border border-white flex gap-4"
+                  >
+                    <div className={`w-10 h-10 rounded-2xl shrink-0 flex items-center justify-center ${item.color}`}>
+                      <item.icon className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-800 text-sm mb-1">{item.title}</h4>
+                      <p className="text-slate-500 text-xs leading-relaxed">{item.desc}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+
+              <div className="mt-8 bg-slate-900 p-6 rounded-3xl text-white text-center">
+                <Heart className="w-8 h-8 text-rose-400 mx-auto mb-3 animate-pulse" />
+                <h3 className="font-bold mb-1">Bắt đầu ngay thôi!</h3>
+                <p className="text-slate-400 text-xs mb-4">Mọi công cụ đều đã sẵn sàng để hỗ trợ bạn.</p>
+                <button 
+                  onClick={() => setShowGuide(false)}
+                  className="w-full py-3 bg-white text-slate-900 font-bold rounded-xl hover:bg-mint-50 transition-all text-sm"
+                >
+                  Đã hiểu!
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       <div className="max-w-2xl mx-auto px-4 pt-12">
         {/* Header */}
@@ -682,6 +792,7 @@ export default function App() {
               </button>
             </>
           )}
+
         </motion.div>
 
         {/* Results Area */}
