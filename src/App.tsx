@@ -55,12 +55,10 @@ import {
   LoveAdvice, 
   LoveSummary,
   ImageAnalysis,
-  JournalEntry as GeminiJournalEntry,
+  JournalEntry,
   JournalAnalysis,
   Vibe 
 } from './services/gemini';
-import { supabaseService, JournalEntry } from './services/supabaseService';
-import { User } from '@supabase/supabase-js';
 
 const VIBES: { id: Vibe; label: string; icon: any; color: string; desc: string }[] = [
   { id: 'funny', label: 'Hài hước', icon: Smile, color: 'text-orange-500 bg-orange-50', desc: 'Duyyên dáng, thông minh' },
@@ -99,39 +97,11 @@ export default function App() {
   const [adviceContext, setAdviceContext] = useState('');
   const [selectedVibe, setSelectedVibe] = useState<Vibe>('funny');
   const [loading, setLoading] = useState(false);
-  const [showGuide, setShowGuide] = useState(false); // Changed to false by default, we'll show it after login
-  const [user, setUser] = useState<any | null>(null);
-  const [showAuth, setShowAuth] = useState(true); // Always true initially to force check
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
-  const [authUsername, setAuthUsername] = useState('');
-  const [authPassword, setAuthPassword] = useState('');
-
+  const [showGuide, setShowGuide] = useState(true);
   const [currentTheme, setCurrentTheme] = useState(() => {
     const saved = localStorage.getItem('crush_buddy_theme');
     return saved || 'mint';
   });
-
-  React.useEffect(() => {
-    // Check initial auth session
-    try {
-      supabaseService.getCurrentUser().then(currUser => {
-        setUser(currUser);
-        if (currUser) {
-          setShowAuth(false);
-          // If first time login in this session, maybe show guide
-          const hasSeenGuide = sessionStorage.getItem('has_seen_guide');
-          if (!hasSeenGuide) {
-            setShowGuide(true);
-            sessionStorage.setItem('has_seen_guide', 'true');
-          }
-        }
-      }).catch(err => {
-        console.error('Initial auth check failed:', err);
-      });
-    } catch (e) {
-      console.error('Auth error on load:', e);
-    }
-  }, []);
 
   React.useEffect(() => {
     localStorage.setItem('crush_buddy_theme', currentTheme);
@@ -142,16 +112,6 @@ export default function App() {
     const themeClass = THEMES.find(t => t.id === currentTheme)?.class;
     if (themeClass) body.classList.add(themeClass);
   }, [currentTheme]);
-
-  const [isConfigured, setIsConfigured] = useState(true);
-
-  React.useEffect(() => {
-    const url = import.meta.env.VITE_SUPABASE_URL;
-    const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    if (!url || !key || url.includes('placeholder')) {
-      setIsConfigured(false);
-    }
-  }, []);
 
   const [suggestions, setSuggestions] = useState<ReplySuggestion[]>([]);
   const [dateSuggestions, setDateSuggestions] = useState<DateSuggestion[]>([]);
@@ -167,25 +127,14 @@ export default function App() {
   const [finalSummary, setFinalSummary] = useState<LoveSummary | null>(null);
   
   // Journal state
-  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
+  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>(() => {
+    const saved = localStorage.getItem('crush_buddy_journal');
+    return saved ? JSON.parse(saved) : [];
+  });
   
   React.useEffect(() => {
-    if (user) {
-      loadJournals();
-    } else {
-      setJournalEntries([]);
-    }
-  }, [user]);
-
-  const loadJournals = async () => {
-    if (!user) return;
-    try {
-      const data = await supabaseService.getJournals(user.id);
-      setJournalEntries(data);
-    } catch (err) {
-      console.error('Error loading journals:', err);
-    }
-  };
+    localStorage.setItem('crush_buddy_journal', JSON.stringify(journalEntries));
+  }, [journalEntries]);
 
   const [newJournalContent, setNewJournalContent] = useState('');
   const [newJournalImage, setNewJournalImage] = useState<string | null>(null);
@@ -296,31 +245,26 @@ export default function App() {
     }
   };
 
-  const handleAddJournal = async () => {
+  const handleAddJournal = () => {
     if (!newJournalContent.trim()) return;
-    if (!user) {
-      setShowAuth(true);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const newEntry: Omit<JournalEntry, 'id' | 'created_at'> = {
-        user_id: user.id,
-        content: newJournalContent,
-        mood: selectedMood,
-        analysis: newJournalImage ? { image: newJournalImage } : null
-      };
-      
-      await supabaseService.saveJournal(newEntry);
-      setNewJournalContent('');
-      setNewJournalImage(null);
-      await loadJournals(); // Refresh list
-    } catch (err) {
-      setError('Lỗi khi lưu nhật ký.');
-    } finally {
-      setLoading(false);
-    }
+    const now = new Date();
+    const formattedDate = now.toLocaleDateString('vi-VN', { 
+      day: '2-digit', 
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    
+    const newEntry: JournalEntry = {
+      id: Date.now().toString(),
+      timestamp: formattedDate,
+      content: newJournalContent,
+      mood: selectedMood,
+      image: newJournalImage || undefined
+    };
+    setJournalEntries(prev => [...prev, newEntry]);
+    setNewJournalContent('');
+    setNewJournalImage(null);
   };
 
   const handleJournalImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -332,13 +276,8 @@ export default function App() {
     }
   };
 
-  const handleDeleteJournal = async (id: string) => {
-    try {
-      await supabaseService.deleteJournal(id);
-      await loadJournals();
-    } catch (err) {
-      setError('Lỗi khi xóa nhật ký.');
-    }
+  const handleDeleteJournal = (id: string) => {
+    setJournalEntries(prev => prev.filter(e => e.id !== id));
   };
 
   const handleJournalAnalyze = async () => {
@@ -346,54 +285,13 @@ export default function App() {
     setLoading(true);
     setJournalAnalysis(null);
     try {
-      // Map Supabase JournalEntry to GeminiJournalEntry for analysis
-      const entriesForGemini: GeminiJournalEntry[] = journalEntries.map(e => ({
-        id: e.id || '',
-        timestamp: e.created_at || '',
-        content: e.content,
-        mood: e.mood || 'smile'
-      }));
-      const result = await analyzeJournal(entriesForGemini);
+      const result = await analyzeJournal(journalEntries);
       setJournalAnalysis(result);
       scrollToResults();
     } catch (err) {
       setError('Lỗi khi phân tích nhật ký.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleAuth = async () => {
-    if (!authUsername.trim() || !authPassword.trim()) return;
-    setLoading(true);
-    setError(null);
-    try {
-      if (authMode === 'signup') {
-        const result = await supabaseService.signUp(authUsername, authPassword);
-        if (result.user) {
-          setUser(result.user);
-          setShowAuth(false);
-        }
-      } else {
-        const result = await supabaseService.signIn(authUsername, authPassword);
-        if (result.user) {
-          setUser(result.user);
-          setShowAuth(false);
-        }
-      }
-    } catch (err: any) {
-      setError(err.message || 'Lỗi đăng nhập/đăng ký.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await supabaseService.signOut();
-      setUser(null);
-    } catch (err) {
-      console.error('Logout error:', err);
     }
   };
 
@@ -418,43 +316,6 @@ export default function App() {
         <div className="absolute top-[-5%] right-[-5%] w-[50%] h-[50%] rounded-full bg-pink-soft/60 blur-[100px] transform-gpu" />
         <div className="absolute bottom-[-5%] left-[-5%] w-[50%] h-[50%] rounded-full bg-mint-100/60 blur-[100px] transform-gpu" />
       </div>
-
-      {!isConfigured && (
-        <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-xl z-[100] flex items-center justify-center p-6 overflow-y-auto">
-          <div className="bg-white p-8 rounded-4xl max-w-lg w-full shadow-2xl">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-14 h-14 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center shrink-0">
-                <Settings className="w-8 h-8 animate-spin-slow" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-slate-800">Chưa cấu hình Supabase</h2>
-                <p className="text-slate-400 text-sm">Vui lòng thiết lập biến môi trường để ứng dụng hoạt động.</p>
-              </div>
-            </div>
-            
-            <div className="space-y-4 text-sm bg-slate-50 p-6 rounded-3xl border border-slate-100 mb-6">
-              <p className="font-bold text-slate-700">Các bước cần làm:</p>
-              <ol className="list-decimal list-inside space-y-2 text-slate-600">
-                <li>Truy cập vào menu <strong>Settings</strong> trong AI Studio.</li>
-                <li>Thêm 2 biến môi trường sau:
-                  <div className="mt-2 space-y-1 font-mono text-[11px] bg-white p-3 rounded-xl border border-slate-200">
-                    <p>VITE_SUPABASE_URL</p>
-                    <p>VITE_SUPABASE_ANON_KEY</p>
-                  </div>
-                </li>
-                <li>Lấy các giá trị này trong tab <strong>Project Settings -&gt; API</strong> tại Supabase Dashboard.</li>
-              </ol>
-            </div>
-
-            <button 
-              onClick={() => window.location.reload()}
-              className="w-full py-4 bg-slate-800 text-white font-bold rounded-2xl hover:bg-slate-900 transition-all shadow-lg active:scale-95"
-            >
-              THỬ LẠI SAU KHI CẤU HÌNH
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Floating Guide Button */}
       <button 
@@ -586,108 +447,9 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Auth Overlay */}
-      <AnimatePresence>
-        {showAuth && (
-          <>
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[60]"
-            />
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-sm bg-white z-[70] p-8 rounded-4xl shadow-2xl"
-            >
-              <div className="text-center mb-8">
-                <div className="w-16 h-16 bg-mint-50 text-mint-500 rounded-3xl flex items-center justify-center mx-auto mb-4">
-                  <ShieldCheck className="w-8 h-8" />
-                </div>
-                <h2 className="text-2xl font-bold text-slate-800">
-                  {authMode === 'login' ? 'Đăng nhập' : 'Tạo tài khoản'}
-                </h2>
-                <p className="text-slate-400 text-sm mt-1">Lưu trữ kỉ niệm riêng tư của bạn</p>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="text-[10px] uppercase font-bold text-slate-400 tracking-widest mb-1.5 block ml-1">Tên đăng nhập</label>
-                  <input 
-                    type="text"
-                    value={authUsername}
-                    onChange={(e) => setAuthUsername(e.target.value)}
-                    className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-mint-200 transition-all text-sm font-medium"
-                    placeholder="VD: crushlover"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] uppercase font-bold text-slate-400 tracking-widest mb-1.5 block ml-1">Mật khẩu</label>
-                  <input 
-                    type="password"
-                    value={authPassword}
-                    onChange={(e) => setAuthPassword(e.target.value)}
-                    className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-mint-200 transition-all text-sm font-medium"
-                    placeholder="••••••••"
-                  />
-                </div>
-                
-                {error && (
-                  <div className="p-3 bg-rose-50 text-rose-500 text-xs font-bold rounded-xl flex items-center gap-2">
-                    <XCircle className="w-4 h-4" />
-                    <span>{error}</span>
-                  </div>
-                )}
-
-                <button 
-                  onClick={handleAuth}
-                  disabled={loading}
-                  className="w-full py-4 bg-slate-800 text-white font-bold rounded-2xl hover:bg-slate-900 transition-all shadow-lg active:scale-95 disabled:opacity-50"
-                >
-                  {loading ? <RefreshCw className="w-5 h-5 animate-spin mx-auto" /> : (authMode === 'login' ? 'ĐĂNG NHẬP' : 'ĐĂNG KÝ')}
-                </button>
-
-                <button 
-                  onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
-                  className="w-full text-xs font-bold text-slate-400 hover:text-mint-500 transition-all uppercase tracking-widest"
-                >
-                  {authMode === 'login' ? 'Chưa có tài khoản? Đăng ký ngay' : 'Đã có tài khoản? Đăng nhập'}
-                </button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
       <div className="max-w-2xl mx-auto px-4 pt-12">
         {/* Header */}
-        <header className="relative text-center mb-10">
-          <div className="absolute right-0 top-0">
-            {user ? (
-              <div className="flex items-center gap-2">
-                <div className="hidden sm:block text-right">
-                  <p className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">Xin chào</p>
-                  <p className="text-sm font-bold text-slate-700">{user.username || 'User'}</p>
-                </div>
-                <button 
-                  onClick={handleLogout}
-                  className="w-10 h-10 bg-white border border-slate-100 rounded-2xl flex items-center justify-center text-slate-400 hover:text-rose-400 hover:border-rose-100 transition-all shadow-sm"
-                  title="Đăng xuất"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
-              </div>
-            ) : (
-              <button 
-                onClick={() => {setAuthMode('login'); setShowAuth(true);}}
-                className="px-4 py-2 bg-white border border-slate-100 rounded-2xl text-xs font-bold text-slate-400 hover:text-mint-500 hover:border-mint-100 transition-all shadow-sm uppercase tracking-widest"
-              >
-                Đăng nhập
-              </button>
-            )}
-          </div>
+        <header className="text-center mb-10">
           <motion.div 
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -1023,13 +785,9 @@ export default function App() {
                           <p className="text-slate-300 text-sm font-bold uppercase tracking-widest italic">Hãy viết chuơng đầu tiên...</p>
                         </div>
                       ) : (
-                        journalEntries.map((entry) => {
+                        journalEntries.slice().reverse().map((entry) => {
                           const MoodIcon = MOODS.find(m => m.id === entry.mood)?.icon || Smile;
                           const moodColor = MOODS.find(m => m.id === entry.mood)?.color || 'text-slate-400 bg-slate-50';
-                          const entryDate = entry.created_at ? new Date(entry.created_at).toLocaleDateString('vi-VN', {
-                            day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
-                          }) : '---';
-                          const entryImage = (entry.analysis as any)?.image;
                           
                           return (
                             <motion.div 
@@ -1040,26 +798,30 @@ export default function App() {
                               className="relative"
                             >
                               {/* Timeline Dot */}
-                              <div className={`absolute left-[-29px] top-1 w-5 h-5 rounded-full border-4 border-white shadow-sm z-10 flex items-center justify-center ${moodColor}`}>
-                                <MoodIcon className="w-2 h-2" />
-                              </div>
-
-                              <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-50 group hover:border-mint-100 transition-all">
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest flex items-center gap-1">
-                                    <Clock className="w-3 h-3" /> {entryDate}
-                                  </span>
-                                  <button 
-                                    onClick={() => entry.id && handleDeleteJournal(entry.id)}
-                                    className="p-1.5 text-slate-200 hover:text-rose-400 transition-all opacity-0 group-hover:opacity-100"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
+                              <div className="absolute -left-[10px] top-4 w-5 h-5 rounded-full bg-white border-4 border-mint-400 z-10 shadow-sm" />
+                              
+                              <div className="flex items-center gap-4 p-5 bg-white rounded-4xl border border-slate-50 group shadow-sm hover:shadow-md transition-all">
+                                <div className={`w-12 h-12 rounded-3xl flex items-center justify-center shrink-0 ${moodColor}`}>
+                                  <MoodIcon className="w-6 h-6" />
                                 </div>
-                                <p className="text-slate-600 text-sm leading-relaxed mb-3">{entry.content}</p>
-                                {entryImage && (
-                                  <img src={entryImage} alt="Entry memo" className="w-full h-32 object-cover rounded-2xl border border-slate-50" />
-                                )}
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <Clock className="w-3 h-3 text-slate-300" />
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{entry.timestamp}</p>
+                                  </div>
+                                  <p className="text-base text-slate-600 font-bold leading-tight mb-2">{entry.content}</p>
+                                  {entry.image && (
+                                    <div className="mt-2">
+                                      <img src={entry.image} alt="Journal media" className="w-24 h-24 object-cover rounded-2xl border border-slate-100 shadow-sm" />
+                                    </div>
+                                  )}
+                                </div>
+                                <button 
+                                  onClick={() => handleDeleteJournal(entry.id)}
+                                  className="p-3 opacity-40 group-hover:opacity-100 text-slate-400 hover:text-rose-500 transition-all rounded-2xl hover:bg-rose-50"
+                                >
+                                  <Trash2 className="w-5 h-5" />
+                                </button>
                               </div>
                             </motion.div>
                           );
