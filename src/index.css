@@ -1,17 +1,61 @@
 @import "tailwindcss";
 
-@theme {
-  --font-sans: "Quicksand", ui-sans-serif, system-ui, sans-serif;
-  
+:root {
   --color-mint-50: #f0fff4;
   --color-mint-100: #e6fffa;
-  --color-mint-200: #b2f5ea;
   --color-mint-500: #38b2ac;
-  
+  --color-rose-400: #f472b6;
+  --color-rose-50: #fff5f7;
   --color-pink-soft: #fff5f7;
-  --color-pink-pastel: #fed7e2;
-  
+}
+
+.theme-rose {
+  --color-mint-50: #fff5f5;
+  --color-mint-100: #fff0f0;
+  --color-mint-500: #f687b3;
+  --color-rose-400: #ed8936;
+  --color-rose-50: #fffaf0;
+  --color-pink-soft: #fffaf0;
+}
+
+.theme-sky {
+  --color-mint-50: #ebf8ff;
+  --color-mint-100: #e1f5fe;
+  --color-mint-500: #4299e1;
+  --color-rose-400: #38b2ac;
+  --color-rose-50: #f0fff4;
+  --color-pink-soft: #f0fff4;
+}
+
+.theme-violet {
+  --color-mint-50: #faf5ff;
+  --color-mint-100: #f3e5f5;
+  --color-mint-500: #9f7aea;
+  --color-rose-400: #f687b3;
+  --color-rose-50: #fff5f7;
+  --color-pink-soft: #fff5f7;
+}
+
+.theme-amber {
+  --color-mint-50: #fffaf0;
+  --color-mint-100: #fef3c7;
+  --color-mint-500: #ed8936;
+  --color-rose-400: #38b2ac;
+  --color-rose-50: #f0fff4;
+  --color-pink-soft: #f0fff4;
+}
+
+@theme {
+  --font-sans: "Quicksand", ui-sans-serif, system-ui, sans-serif;
   --radius-4xl: 32px;
+  
+  /* Ensure Tailwind 4 recognizes these colors if they aren't auto-discovered */
+  --color-mint-50: var(--color-mint-50);
+  --color-mint-100: var(--color-mint-100);
+  --color-mint-500: var(--color-mint-500);
+  --color-rose-400: var(--color-rose-400);
+  --color-rose-50: var(--color-rose-50);
+  --color-pink-soft: var(--color-pink-soft);
 }
 
 @layer base {
