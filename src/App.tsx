@@ -113,18 +113,24 @@ export default function App() {
 
   React.useEffect(() => {
     // Check initial auth session
-    supabaseService.getCurrentUser().then(currUser => {
-      setUser(currUser);
-      if (currUser) {
-        setShowAuth(false);
-        // If first time login in this session, maybe show guide
-        const hasSeenGuide = sessionStorage.getItem('has_seen_guide');
-        if (!hasSeenGuide) {
-          setShowGuide(true);
-          sessionStorage.setItem('has_seen_guide', 'true');
+    try {
+      supabaseService.getCurrentUser().then(currUser => {
+        setUser(currUser);
+        if (currUser) {
+          setShowAuth(false);
+          // If first time login in this session, maybe show guide
+          const hasSeenGuide = sessionStorage.getItem('has_seen_guide');
+          if (!hasSeenGuide) {
+            setShowGuide(true);
+            sessionStorage.setItem('has_seen_guide', 'true');
+          }
         }
-      }
-    });
+      }).catch(err => {
+        console.error('Initial auth check failed:', err);
+      });
+    } catch (e) {
+      console.error('Auth error on load:', e);
+    }
   }, []);
 
   React.useEffect(() => {
@@ -136,6 +142,16 @@ export default function App() {
     const themeClass = THEMES.find(t => t.id === currentTheme)?.class;
     if (themeClass) body.classList.add(themeClass);
   }, [currentTheme]);
+
+  const [isConfigured, setIsConfigured] = useState(true);
+
+  React.useEffect(() => {
+    const url = import.meta.env.VITE_SUPABASE_URL;
+    const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    if (!url || !key || url.includes('placeholder')) {
+      setIsConfigured(false);
+    }
+  }, []);
 
   const [suggestions, setSuggestions] = useState<ReplySuggestion[]>([]);
   const [dateSuggestions, setDateSuggestions] = useState<DateSuggestion[]>([]);
@@ -402,6 +418,43 @@ export default function App() {
         <div className="absolute top-[-5%] right-[-5%] w-[50%] h-[50%] rounded-full bg-pink-soft/60 blur-[100px] transform-gpu" />
         <div className="absolute bottom-[-5%] left-[-5%] w-[50%] h-[50%] rounded-full bg-mint-100/60 blur-[100px] transform-gpu" />
       </div>
+
+      {!isConfigured && (
+        <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-xl z-[100] flex items-center justify-center p-6 overflow-y-auto">
+          <div className="bg-white p-8 rounded-4xl max-w-lg w-full shadow-2xl">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-14 h-14 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center shrink-0">
+                <Settings className="w-8 h-8 animate-spin-slow" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-slate-800">Chưa cấu hình Supabase</h2>
+                <p className="text-slate-400 text-sm">Vui lòng thiết lập biến môi trường để ứng dụng hoạt động.</p>
+              </div>
+            </div>
+            
+            <div className="space-y-4 text-sm bg-slate-50 p-6 rounded-3xl border border-slate-100 mb-6">
+              <p className="font-bold text-slate-700">Các bước cần làm:</p>
+              <ol className="list-decimal list-inside space-y-2 text-slate-600">
+                <li>Truy cập vào menu <strong>Settings</strong> trong AI Studio.</li>
+                <li>Thêm 2 biến môi trường sau:
+                  <div className="mt-2 space-y-1 font-mono text-[11px] bg-white p-3 rounded-xl border border-slate-200">
+                    <p>VITE_SUPABASE_URL</p>
+                    <p>VITE_SUPABASE_ANON_KEY</p>
+                  </div>
+                </li>
+                <li>Lấy các giá trị này trong tab <strong>Project Settings -&gt; API</strong> tại Supabase Dashboard.</li>
+              </ol>
+            </div>
+
+            <button 
+              onClick={() => window.location.reload()}
+              className="w-full py-4 bg-slate-800 text-white font-bold rounded-2xl hover:bg-slate-900 transition-all shadow-lg active:scale-95"
+            >
+              THỬ LẠI SAU KHI CẤU HÌNH
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Floating Guide Button */}
       <button 
